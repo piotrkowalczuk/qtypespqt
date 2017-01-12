@@ -7,6 +7,7 @@ import (
 
 	"github.com/piotrkowalczuk/pqt"
 	"github.com/piotrkowalczuk/pqt/pqtgo"
+	"github.com/piotrkowalczuk/qtypes"
 )
 
 type Plugin struct {
@@ -14,20 +15,27 @@ type Plugin struct {
 	Visibility pqtgo.Visibility
 }
 
+// PropertyType implements pqtgo Plugin interface.
 func (*Plugin) PropertyType(c *pqt.Column, m int32) string {
 	switch {
-	case useString(c, m):
+	case useString(c.Type, m):
 		return "*qtypes.String"
-	case useInt64(c, m):
+	case useInt64(c.Type, m):
 		return "*qtypes.Int64"
-	case useFloat64(c, m):
+	case useFloat64(c.Type, m):
 		return "*qtypes.Float64"
-	case useTimestamp(c, m):
+	case useTimestamp(c.Type, m):
 		return "*qtypes.Timestamp"
 	}
 	return ""
 }
 
+// ScanClause implements pqtgo Plugin interface.
+func (p *Plugin) ScanClause(c *pqt.Column) string {
+	return ""
+}
+
+// SetClause implements pqtgo Plugin interface.
 func (p *Plugin) SetClause(c *pqt.Column) string {
 	return ""
 }
@@ -35,23 +43,23 @@ func (p *Plugin) SetClause(c *pqt.Column) string {
 // WhereClause implements pqtgo Plugin interface.
 func (p *Plugin) WhereClause(c *pqt.Column) string {
 	switch {
-	case useString(c, 3):
+	case useString(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
 			%s({{ .selector }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryStringWhereClause"))
-	case useInt64(c, 3):
+	case useInt64(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
 			%s({{ .selector }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryInt64WhereClause"))
-	case useFloat64(c, 3):
+	case useFloat64(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
 			%s({{ .selector }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryFloat64WhereClause"))
-	case useTimestamp(c, 3):
+	case useTimestamp(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
 		%s({{ .selector }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryTimestampWhereClause"))
 	}
 	return ""
 }
 
-// GenAfter implements pqtgo Plugin interface.
+// Static implements pqtgo Plugin interface.
 func (p *Plugin) Static(s *pqt.Schema) string {
 	return `
 	` + p.numericWhereClause("Int64") + `
@@ -893,13 +901,13 @@ func (p *Plugin) numericWhereClause(n string) string {
 }`
 }
 
-func useInt64(c *pqt.Column, m int32) (use bool) {
-	if m != 3 {
+func useInt64(t pqt.Type, m int32) (use bool) {
+	if m != pqtgo.ModeCriteria {
 		return false
 	}
-	switch t := c.Type.(type) {
+	switch tt := t.(type) {
 	case pqtgo.BuiltinType:
-		switch types.BasicKind(t) {
+		switch types.BasicKind(tt) {
 		case types.Int:
 			use = true
 		case types.Int8:
@@ -912,93 +920,133 @@ func useInt64(c *pqt.Column, m int32) (use bool) {
 			use = true
 		}
 	case pqt.BaseType:
-		switch t {
+		switch tt {
 		case pqt.TypeIntegerSmall(), pqt.TypeInteger(), pqt.TypeIntegerBig():
 			use = true
 		case pqt.TypeSerialSmall(), pqt.TypeSerial(), pqt.TypeSerialBig():
 			use = true
 		default:
 			switch {
-			case strings.HasPrefix(t.String(), "INTEGER["):
+			case strings.HasPrefix(tt.String(), "INTEGER["):
 				use = true
-			case strings.HasPrefix(t.String(), "BIGINT["):
+			case strings.HasPrefix(tt.String(), "BIGINT["):
 				use = true
-			case strings.HasPrefix(t.String(), "SMALLINT["):
+			case strings.HasPrefix(tt.String(), "SMALLINT["):
 				use = true
+			}
+		}
+	case pqtgo.CustomType:
+		if _, ok := tt.ValueOf(m).(*qtypes.Int64); ok {
+			return true
+		}
+	case pqt.MappableType:
+		for _, mt := range tt.Mapping{
+			if useInt64(mt, m) {
+				return true
 			}
 		}
 	}
 	return
 }
 
-func useFloat64(c *pqt.Column, m int32) (use bool) {
-	if m != 3 {
+func useFloat64(t pqt.Type, m int32) (use bool) {
+	if m != pqtgo.ModeCriteria {
 		return false
 	}
-	switch t := c.Type.(type) {
+	switch tt := t.(type) {
 	case pqtgo.BuiltinType:
-		switch types.BasicKind(t) {
+		switch types.BasicKind(tt) {
 		case types.Float32:
 			use = true
 		case types.Float64:
 			use = true
 		}
 	case pqt.BaseType:
-		switch t {
+		switch tt {
 		case pqt.TypeDoublePrecision():
 			use = true
 		default:
 			switch {
-			case strings.HasPrefix(t.String(), "DECIMAL"):
+			case strings.HasPrefix(tt.String(), "DECIMAL"):
 				use = true
-			case strings.HasPrefix(t.String(), "NUMERIC"):
+			case strings.HasPrefix(tt.String(), "NUMERIC"):
 				use = true
-			case strings.HasPrefix(t.String(), "DOUBLE PRECISION["):
+			case strings.HasPrefix(tt.String(), "DOUBLE PRECISION["):
 				use = true
+			}
+		}
+	case pqtgo.CustomType:
+		if _, ok := tt.ValueOf(m).(*qtypes.Float64); ok {
+			return true
+		}
+	case pqt.MappableType:
+		for _, mt := range tt.Mapping{
+			if useFloat64(mt, m) {
+				return true
 			}
 		}
 	}
 	return
 }
 
-func useString(c *pqt.Column, m int32) (use bool) {
-	if m != 3 {
+func useString(t pqt.Type, m int32) (use bool) {
+	if m != pqtgo.ModeCriteria {
 		return false
 	}
 
-	switch t := c.Type.(type) {
+	switch tt := t.(type) {
 	case pqtgo.BuiltinType:
-		switch types.BasicKind(t) {
+		switch types.BasicKind(tt) {
 		case types.String:
 			use = true
 		}
 	case pqt.BaseType:
-		switch t {
+		switch tt {
 		case pqt.TypeText():
 			use = true
 		case pqt.TypeUUID():
 			use = true
 		default:
 			switch {
-			case strings.HasPrefix(c.Type.String(), "TEXT["):
+			case strings.HasPrefix(tt.String(), "TEXT["):
 				use = true
-			case strings.HasPrefix(c.Type.String(), "VARCHAR"), strings.HasPrefix(c.Type.String(), "CHARACTER["):
+			case strings.HasPrefix(tt.String(), "VARCHAR"), strings.HasPrefix(tt.String(), "CHARACTER["):
 				use = true
+			}
+		}
+	case pqtgo.CustomType:
+		if _, ok := tt.ValueOf(m).(*qtypes.String); ok {
+			return true
+		}
+	case pqt.MappableType:
+		for _, mt := range tt.Mapping{
+			if useString(mt, m) {
+				return true
 			}
 		}
 	}
 	return
 }
 
-func useTimestamp(c *pqt.Column, m int32) (use bool) {
-	if m != 3 {
+func useTimestamp(t pqt.Type, m int32) (use bool) {
+	if m != pqtgo.ModeCriteria {
 		return false
 	}
-	switch t := c.Type.(type) {
+	switch tt := t.(type) {
 	case pqt.BaseType:
-		switch t {
+		switch tt {
 		case pqt.TypeTimestamp(), pqt.TypeTimestampTZ():
 			use = true
+		}
+	case pqtgo.CustomType:
+		if _, ok := tt.ValueOf(m).(*qtypes.Timestamp); ok {
+			return true
+		}
+	case pqt.MappableType:
+		for _, mt := range tt.Mapping{
+			if useTimestamp(mt, m) {
+				return true
+			}
 		}
 	}
 	return
