@@ -45,16 +45,16 @@ func (p *Plugin) WhereClause(c *pqt.Column) string {
 	switch {
 	case useString(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryStringWhereClause"))
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryStringWhereClause"))
 	case useInt64(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryInt64WhereClause"))
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryInt64WhereClause"))
 	case useFloat64(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryFloat64WhereClause"))
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryFloat64WhereClause"))
 	case useTimestamp(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-		%s({{ .selector }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryTimestampWhereClause"))
+		%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryTimestampWhereClause"))
 	}
 	return ""
 }
@@ -64,7 +64,7 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 	return `
 	` + p.numericWhereClause("Int64") + `
 	` + p.numericWhereClause("Float64") + `
-	func ` + p.Formatter.Identifier("queryTimestampWhereClause") + `(t *qtypes.Timestamp, sel string, com *Composer, opt *CompositionOpts) error {
+	func ` + p.Formatter.Identifier("queryTimestampWhereClause") + `(t *qtypes.Timestamp, id int, sel string, com *Composer, opt *CompositionOpts) error {
 	if t == nil || !t.Valid {
 		return nil
 	}
@@ -81,7 +81,12 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			com.WriteString(sel)
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
+			}
 			if t.Negation {
 				com.WriteString(" IS NOT NULL ")
 			} else {
@@ -93,7 +98,12 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			com.WriteString(sel)
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
+			}
 			if t.Negation {
 				com.WriteString(" <> ")
 			} else {
@@ -107,7 +117,12 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			com.WriteString(sel)
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
+			}
 			com.WriteString(">")
 			com.WritePlaceholder()
 			com.Add(t.Value())
@@ -117,7 +132,12 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			com.WriteString(sel)
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
+			}
 			com.WriteString(">=")
 			com.WritePlaceholder()
 			com.Add(t.Value())
@@ -127,7 +147,12 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			com.WriteString(sel)
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
+			}
 			com.WriteString(" < ")
 			com.WritePlaceholder()
 			com.Add(t.Value())
@@ -137,7 +162,12 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			com.WriteString(sel)
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
+			}
 			com.WriteString(" <= ")
 			com.WritePlaceholder()
 			com.Add(t.Value())
@@ -148,7 +178,12 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 						return err
 					}
 				}
-				com.WriteString(sel)
+				if err := com.WriteAlias(id); err != nil {
+				return err
+				}
+				if _, err := com.WriteString(sel); err != nil {
+					return err
+				}
 				com.WriteString(" IN (")
 				for i, v := range t.Values {
 					if i != 0 {
@@ -171,12 +206,22 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 				if err != nil {
 					return err
 				}
-				com.WriteString(sel)
+				if err := com.WriteAlias(id); err != nil {
+				return err
+				}
+				if _, err := com.WriteString(sel); err != nil {
+					return err
+				}
 				com.WriteString(" > ")
 				com.WritePlaceholder()
 				com.Add(vv1)
 				com.WriteString(" AND ")
-				com.WriteString(sel)
+				if err := com.WriteAlias(id); err != nil {
+				return err
+				}
+				if _, err := com.WriteString(sel); err != nil {
+					return err
+				}
 				com.WriteString(" < ")
 				com.WritePlaceholder()
 				com.Add(vv2)
@@ -185,7 +230,7 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 	}
 	return nil
 }
-func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, sel string, com *Composer, opt *CompositionOpts) (err error) {
+func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, id int, sel string, com *Composer, opt *CompositionOpts) (err error) {
 	if s == nil || !s.Valid {
 		return
 	}
@@ -196,8 +241,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+		return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if s.Negation {
 			if _, err = com.WriteString(" IS NOT NULL"); err != nil {
@@ -216,8 +264,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+		return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if s.Negation {
 			if _, err = com.WriteString(" <> "); err != nil {
@@ -247,8 +298,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+		return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if s.Negation {
 			if _, err = com.WriteString(" NOT "); err != nil {
@@ -285,8 +339,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if s.Negation {
 			if _, err = com.WriteString(" NOT "); err != nil {
@@ -322,8 +379,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if s.Negation {
 			if _, err = com.WriteString(" NOT "); err != nil {
@@ -361,8 +421,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" @> "); err != nil {
 				return
@@ -389,8 +452,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" <@ "); err != nil {
 				return
@@ -417,8 +483,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" && "); err != nil {
 				return
@@ -445,8 +514,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" ?| "); err != nil {
 				return
@@ -464,8 +536,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" ?& "); err != nil {
 				return
@@ -483,8 +558,11 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if s.Negation {
 				if _, err = com.WriteString(" NOT IN ("); err != nil {
@@ -531,7 +609,7 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 }
 
 func (p *Plugin) numericWhereClause(n string) string {
-	return `func ` + p.Formatter.Identifier("query", n, "where", "clause") + `(i *qtypes.` + n + `, sel string, com *Composer, opt *CompositionOpts) (err error) {
+	return `func ` + p.Formatter.Identifier("query", n, "where", "clause") + `(i *qtypes.` + n + `, id int, sel string, com *Composer, opt *CompositionOpts) (err error) {
 	if i == nil || !i.Valid {
 		return nil
 	}
@@ -542,7 +620,12 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		com.WriteString(sel)
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
+		}
 		if i.Negation {
 			if _, err = com.WriteString(" IS NOT NULL"); err != nil {
 				return
@@ -560,8 +643,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if i.Negation {
 			if _, err = com.WriteString(" <> "); err != nil {
@@ -583,8 +669,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if i.Negation {
 			if _, err = com.WriteString(" <= "); err != nil {
@@ -606,8 +695,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if i.Negation {
 			if _, err = com.WriteString(" < "); err != nil {
@@ -629,8 +721,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if i.Negation {
 			if _, err = com.WriteString(" >= "); err != nil {
@@ -652,8 +747,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if i.Negation {
 			if _, err = com.WriteString(" > "); err != nil {
@@ -676,8 +774,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" @> "); err != nil {
 				return
@@ -700,8 +801,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" <@ "); err != nil {
 				return
@@ -724,8 +828,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" && "); err != nil {
 				return
@@ -748,8 +855,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" ?| "); err != nil {
 				return
@@ -772,8 +882,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" ?& "); err != nil {
 				return
@@ -796,8 +909,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if _, err = com.WriteString(" ? "); err != nil {
 				return
@@ -815,8 +931,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if _, err = com.WriteString(sel); err != nil {
-				return
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
+			if _, err := com.WriteString(sel); err != nil {
+				return err
 			}
 			if i.Negation {
 				if _, err = com.WriteString(" NOT IN ("); err != nil {
@@ -849,8 +968,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if i.Negation {
 			if _, err = com.WriteString(" <= "); err != nil {
@@ -868,8 +990,11 @@ func (p *Plugin) numericWhereClause(n string) string {
 		if _, err = com.WriteString(" AND "); err != nil {
 			return
 		}
-		if _, err = com.WriteString(sel); err != nil {
-			return
+		if err := com.WriteAlias(id); err != nil {
+			return err
+		}
+		if _, err := com.WriteString(sel); err != nil {
+			return err
 		}
 		if i.Negation {
 			if _, err = com.WriteString(" >= "); err != nil {
@@ -940,7 +1065,7 @@ func useInt64(t pqt.Type, m int32) (use bool) {
 			return true
 		}
 	case pqt.MappableType:
-		for _, mt := range tt.Mapping{
+		for _, mt := range tt.Mapping {
 			if useInt64(mt, m) {
 				return true
 			}
@@ -980,7 +1105,7 @@ func useFloat64(t pqt.Type, m int32) (use bool) {
 			return true
 		}
 	case pqt.MappableType:
-		for _, mt := range tt.Mapping{
+		for _, mt := range tt.Mapping {
 			if useFloat64(mt, m) {
 				return true
 			}
@@ -1019,7 +1144,7 @@ func useString(t pqt.Type, m int32) (use bool) {
 			return true
 		}
 	case pqt.MappableType:
-		for _, mt := range tt.Mapping{
+		for _, mt := range tt.Mapping {
 			if useString(mt, m) {
 				return true
 			}
@@ -1043,7 +1168,7 @@ func useTimestamp(t pqt.Type, m int32) (use bool) {
 			return true
 		}
 	case pqt.MappableType:
-		for _, mt := range tt.Mapping{
+		for _, mt := range tt.Mapping {
 			if useTimestamp(mt, m) {
 				return true
 			}
