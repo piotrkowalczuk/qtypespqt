@@ -442,7 +442,12 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 
-			com.Add(JSONArrayString(s.Values))
+			switch opt.IsJSON {
+			case true:
+				com.Add(JSONArrayString(s.Values))
+			case false:
+				com.Add(pq.StringArray(s.Values))
+			}
 			com.Dirty = true
 		}
 	case qtypes.QueryType_IS_CONTAINED_BY:
@@ -473,7 +478,12 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 
-			com.Add(s.Value())
+			switch opt.IsJSON {
+			case true:
+				com.Add(JSONArrayString(s.Values))
+			case false:
+				com.Add(pq.StringArray(s.Values))
+			}
 			com.Dirty = true
 		}
 	case qtypes.QueryType_OVERLAP:
@@ -504,7 +514,12 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 
-			com.Add(s.Value())
+			switch opt.IsJSON {
+			case true:
+				com.Add(JSONArrayString(s.Values))
+			case false:
+				com.Add(pq.StringArray(s.Values))
+			}
 			com.Dirty = true
 		}
 	case qtypes.QueryType_HAS_ANY_ELEMENT:
@@ -526,7 +541,12 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 			if err = com.WritePlaceholder(); err != nil {
 				return
 			}
-			com.Add(pq.StringArray(s.Values))
+			switch opt.IsJSON {
+			case true:
+				com.Add(JSONArrayString(s.Values))
+			case false:
+				com.Add(pq.StringArray(s.Values))
+			}
 			com.Dirty = true
 		}
 	case qtypes.QueryType_HAS_ALL_ELEMENTS:
@@ -548,7 +568,12 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 			if err = com.WritePlaceholder(); err != nil {
 				return
 			}
-			com.Add(pq.StringArray(s.Values))
+			switch opt.IsJSON {
+			case true:
+				com.Add(JSONArrayString(s.Values))
+			case false:
+				com.Add(pq.StringArray(s.Values))
+			}
 			com.Dirty = true
 		}
 	case qtypes.QueryType_IN:
