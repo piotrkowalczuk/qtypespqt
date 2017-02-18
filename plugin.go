@@ -44,7 +44,7 @@ func (p *Plugin) SetClause(c *pqt.Column) string {
 func (p *Plugin) WhereClause(c *pqt.Column) string {
 	opts := "And"
 	if c.IsDynamic {
-		opts = `&CompositionOpts{Joint: "And", IsDynamic: true}`
+		opts = `&CompositionOpts{Joint: " AND ", IsDynamic: true}`
 	}
 	switch {
 	case useString(c.Type, pqtgo.ModeCriteria):
