@@ -42,19 +42,23 @@ func (p *Plugin) SetClause(c *pqt.Column) string {
 
 // WhereClause implements pqtgo Plugin interface.
 func (p *Plugin) WhereClause(c *pqt.Column) string {
+	opts := "And"
+	if c.IsDynamic {
+		opts = `&CompositionOpts{Joint: "And", IsDynamic: true}`
+	}
 	switch {
 	case useString(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryStringWhereClause"))
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, p.Formatter.Identifier("queryStringWhereClause"), opts)
 	case useInt64(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryInt64WhereClause"))
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, p.Formatter.Identifier("queryInt64WhereClause"), opts)
 	case useFloat64(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryFloat64WhereClause"))
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, p.Formatter.Identifier("queryFloat64WhereClause"), opts)
 	case useTimestamp(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-		%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, And)`, p.Formatter.Identifier("queryTimestampWhereClause"))
+		%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, p.Formatter.Identifier("queryTimestampWhereClause"), opts)
 	}
 	return ""
 }
@@ -81,8 +85,10 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -98,8 +104,10 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -117,8 +125,10 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -147,8 +157,10 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -162,8 +174,10 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 					return err
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -178,8 +192,10 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 						return err
 					}
 				}
-				if err := com.WriteAlias(id); err != nil {
-				return err
+				if !opt.IsDynamic {
+					if err := com.WriteAlias(id); err != nil {
+						return err
+					}
 				}
 				if _, err := com.WriteString(sel); err != nil {
 					return err
@@ -206,8 +222,10 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 				if err != nil {
 					return err
 				}
-				if err := com.WriteAlias(id); err != nil {
-				return err
+				if !opt.IsDynamic {
+					if err := com.WriteAlias(id); err != nil {
+						return err
+					}
 				}
 				if _, err := com.WriteString(sel); err != nil {
 					return err
@@ -216,8 +234,10 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 				com.WritePlaceholder()
 				com.Add(vv1)
 				com.WriteString(" AND ")
-				if err := com.WriteAlias(id); err != nil {
-				return err
+				if !opt.IsDynamic {
+					if err := com.WriteAlias(id); err != nil {
+						return err
+					}
 				}
 				if _, err := com.WriteString(sel); err != nil {
 					return err
@@ -241,8 +261,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-		return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -264,8 +286,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-		return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -298,8 +322,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-		return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -339,8 +365,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -379,8 +407,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -421,8 +451,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -457,8 +489,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -493,8 +527,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -529,8 +565,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -556,8 +594,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -583,8 +623,10 @@ func ` + p.Formatter.Identifier("queryStringWhereClause") + `(s *qtypes.String, 
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -645,8 +687,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -668,8 +712,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -694,8 +740,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -720,8 +768,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -746,8 +796,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -772,8 +824,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -799,8 +853,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -826,8 +882,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -853,8 +911,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -880,8 +940,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -907,8 +969,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -934,8 +998,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -956,8 +1022,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 					return
 				}
 			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
+			if !opt.IsDynamic {
+				if err := com.WriteAlias(id); err != nil {
+					return err
+				}
 			}
 			if _, err := com.WriteString(sel); err != nil {
 				return err
@@ -993,8 +1061,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 				return
 			}
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
@@ -1015,8 +1085,10 @@ func (p *Plugin) numericWhereClause(n string) string {
 		if _, err = com.WriteString(" AND "); err != nil {
 			return
 		}
-		if err := com.WriteAlias(id); err != nil {
-			return err
+		if !opt.IsDynamic {
+			if err := com.WriteAlias(id); err != nil {
+				return err
+			}
 		}
 		if _, err := com.WriteString(sel); err != nil {
 			return err
