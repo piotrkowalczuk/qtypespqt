@@ -68,201 +68,13 @@ func (p *Plugin) WhereClause(c *pqt.Column) string {
 // Static implements pqtgo Plugin interface.
 func (p *Plugin) Static(s *pqt.Schema) string {
 	buf := bytes.NewBuffer(nil)
+
 	p.whereClause(buf, "Int64")
 	p.whereClause(buf, "Float64")
 	p.whereClause(buf, "String")
-	return buf.String() + `
-	func ` + p.Formatter.Identifier("queryTimestampWhereClause") + `(t *qtypes.Timestamp, id int, sel string, com *Composer, opt *CompositionOpts) error {
-	if t == nil || !t.Valid {
-		return nil
-	}
-	v := t.Value()
-	if v != nil {
-		vv1, err := ptypes.Timestamp(v)
-		if err != nil {
-			return err
-		}
+	p.whereClause(buf, "Timestamp")
 
-		switch t.Type {
-		case qtypes.QueryType_NULL:
-			if com.Dirty {
-				if _, err = com.WriteString(opt.Joint); err != nil {
-					return err
-				}
-			}
-			if !opt.IsDynamic {
-				if err := com.WriteAlias(id); err != nil {
-					return err
-				}
-			}
-			if _, err = com.WriteString(sel); err != nil {
-				return err
-			}
-			if t.Negation {
-				if _, err = com.WriteString(" IS NOT NULL "); err != nil {
-					return err
-				}
-			} else {
-				if _, err = com.WriteString(" IS NULL "); err != nil {
-					return err
-				}
-			}
-		case qtypes.QueryType_EQUAL:
-			if com.Dirty {
-				if _, err = com.WriteString(opt.Joint); err != nil {
-					return err
-				}
-			}
-			if !opt.IsDynamic {
-				if err = com.WriteAlias(id); err != nil {
-					return err
-				}
-			}
-			if _, err = com.WriteString(sel); err != nil {
-				return err
-			}
-			if t.Negation {
-				if _, err = com.WriteString(" <> "); err != nil {
-					return err
-				}
-			} else {
-				if _, err = com.WriteString(" = "); err != nil {
-					return err
-				}
-			}
-			com.WritePlaceholder()
-			com.Add(t.Value())
-		case qtypes.QueryType_GREATER:
-			if com.Dirty {
-				if _, err = com.WriteString(opt.Joint); err != nil {
-					return err
-				}
-			}
-			if !opt.IsDynamic {
-				if err := com.WriteAlias(id); err != nil {
-					return err
-				}
-			}
-			if _, err = com.WriteString(sel); err != nil {
-				return err
-			}
-			com.WriteString(">")
-			com.WritePlaceholder()
-			com.Add(t.Value())
-		case qtypes.QueryType_GREATER_EQUAL:
-			if com.Dirty {
-				if _, err = com.WriteString(opt.Joint); err != nil {
-					return err
-				}
-			}
-			if err := com.WriteAlias(id); err != nil {
-				return err
-			}
-			if _, err := com.WriteString(sel); err != nil {
-				return err
-			}
-			com.WriteString(">=")
-			com.WritePlaceholder()
-			com.Add(t.Value())
-		case qtypes.QueryType_LESS:
-			if com.Dirty {
-				if _, err = com.WriteString(opt.Joint); err != nil {
-					return err
-				}
-			}
-			if !opt.IsDynamic {
-				if err := com.WriteAlias(id); err != nil {
-					return err
-				}
-			}
-			if _, err := com.WriteString(sel); err != nil {
-				return err
-			}
-			com.WriteString(" < ")
-			com.WritePlaceholder()
-			com.Add(t.Value())
-		case qtypes.QueryType_LESS_EQUAL:
-			if com.Dirty {
-				if _, err = com.WriteString(opt.Joint); err != nil {
-					return err
-				}
-			}
-			if !opt.IsDynamic {
-				if err := com.WriteAlias(id); err != nil {
-					return err
-				}
-			}
-			if _, err := com.WriteString(sel); err != nil {
-				return err
-			}
-			com.WriteString(" <= ")
-			com.WritePlaceholder()
-			com.Add(t.Value())
-		case qtypes.QueryType_IN:
-			if len(t.Values) >0 {
-				if com.Dirty {
-					if _, err = com.WriteString(opt.Joint); err != nil {
-						return err
-					}
-				}
-				if !opt.IsDynamic {
-					if err := com.WriteAlias(id); err != nil {
-						return err
-					}
-				}
-				if _, err := com.WriteString(sel); err != nil {
-					return err
-				}
-				com.WriteString(" IN (")
-				for i, v := range t.Values {
-					if i != 0 {
-						com.WriteString(", ")
-					}
-					com.WritePlaceholder()
-					com.Add(v)
-				}
-				com.WriteString(") ")
-			}
-		case qtypes.QueryType_BETWEEN:
-			if com.Dirty {
-				if _, err = com.WriteString(opt.Joint); err != nil {
-					return err
-				}
-			}
-			v2 := t.Values[1]
-			if v2 != nil {
-				vv2, err := ptypes.Timestamp(v2)
-				if err != nil {
-					return err
-				}
-				if !opt.IsDynamic {
-					if err := com.WriteAlias(id); err != nil {
-						return err
-					}
-				}
-				if _, err := com.WriteString(sel); err != nil {
-					return err
-				}
-				com.WriteString(" > ")
-				com.WritePlaceholder()
-				com.Add(vv1)
-				com.WriteString(" AND ")
-				if !opt.IsDynamic {
-					if err := com.WriteAlias(id); err != nil {
-						return err
-					}
-				}
-				if _, err := com.WriteString(sel); err != nil {
-					return err
-				}
-				com.WriteString(" < ")
-				com.WritePlaceholder()
-				com.Add(vv2)
-			}
-		}
-	}
-	return nil
-}`
+	return buf.String()
 }
 
 func (p *Plugin) whereClause(w io.Writer, n string) error {
@@ -480,7 +292,7 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 				}
 			}`)
 	}
-	fmt.Fprint(w, `
+	fmt.Fprintf(w, `
 		case qtypes.QueryType_IN:
 			if i.Negation {
 				if _, err = com.WriteString(" NOT IN ("); err != nil {
@@ -500,12 +312,12 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 				if err = com.WritePlaceholder(); err != nil {
 					return
 				}
-				com.Add(v)
+				%s
 				com.Dirty = true
 			}
 			if _, err = com.WriteString(")"); err != nil {
 				return
-			}`)
+			}`, add(n, "v"))
 	fmt.Fprintf(w, `
 		case qtypes.QueryType_BETWEEN:
 			cpy := *i
@@ -520,7 +332,7 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 				return err
 			}`, funcName, funcName)
 
-	fmt.Fprintf(w, `
+	fmt.Fprint(w, `
 			default:
 				return
 		}
@@ -543,15 +355,23 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 			}
 		}
 		switch i.Type {
-		case qtypes.QueryType_CONTAINS, qtypes.QueryType_IS_CONTAINED_BY, qtypes.QueryType_HAS_ANY_ELEMENT, qtypes.QueryType_HAS_ALL_ELEMENTS:
-			switch opt.IsJSON {
-			case true:
-				com.Add(JSONArray%s(i.Values))
-			case false:
-				com.Add(pq.%sArray(i.Values))
-			}
-		case qtypes.QueryType_OVERLAP:
-			com.Add(pq.%sArray(i.Values))
+		case qtypes.QueryType_CONTAINS, qtypes.QueryType_IS_CONTAINED_BY, qtypes.QueryType_HAS_ANY_ELEMENT, qtypes.QueryType_HAS_ALL_ELEMENTS:`)
+	if strings.ToLower(n) == "timestamp" {
+		fmt.Fprint(w, `
+			return errors.New("query type not supported for timestamp")`)
+
+	} else {
+		fmt.Fprintf(w, `
+				switch opt.IsJSON {
+				case true:
+					com.Add(JSONArray%s(i.Values))
+				case false:
+					com.Add(pq.%sArray(i.Values))
+				}
+			case qtypes.QueryType_OVERLAP:
+				com.Add(pq.%sArray(i.Values))`, n, n, n)
+	}
+	fmt.Fprintf(w, `
 		case qtypes.QueryType_SUBSTRING:
 			com.Add(fmt.Sprintf("%s", i.Value()))
 		case qtypes.QueryType_HAS_PREFIX:
@@ -561,12 +381,13 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 		case qtypes.QueryType_BETWEEN:
 			// already handled by recursive call
 		default:
-			com.Add(i.Value())
+			%s
+
 		}
 
 		com.Dirty = true
 		return nil
-	}`, n, n, n, "%%%s%%", "%s%%", "%%%s")
+	}`, "%%%s%%", "%s%%", "%%%s", add(n, "i.Value()"))
 	return nil
 }
 
@@ -719,4 +540,17 @@ func useTimestamp(t pqt.Type, m int32) (use bool) {
 		}
 	}
 	return
+}
+
+func add(n, s string) string {
+	if strings.ToLower(n) == "timestamp" {
+		return fmt.Sprintf(`
+			ts, err := ptypes.Timestamp(%s)
+			if err != nil {
+				return err
+			}
+			com.Add(ts)`, s)
+	}
+	return fmt.Sprintf(`
+		com.Add(%s)`, s)
 }
