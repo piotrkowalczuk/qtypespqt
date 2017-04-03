@@ -164,14 +164,6 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 					}
 				}
 			}
-			if opt.SelectorCast != "" {
-				if _, err = com.WriteString("::"); err != nil {
-					return err
-				}
-				if _, err = com.WriteString(opt.SelectorCast); err != nil {
-					return err
-				}
-			}
 		}
 		switch i.Type {`)
 
