@@ -86,6 +86,11 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 		}`, funcName, n,
 	)
 	fmt.Fprint(w, `
+		if i.Type == qtypes.QueryType_IN {
+			if len(i.Values) == 0 {
+				return nil
+			}
+		}
 		if i.Type != qtypes.QueryType_BETWEEN {
 			if com.Dirty {
 				if _, err = com.WriteString(opt.Joint); err != nil {
@@ -328,7 +333,7 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 			default:
 				return
 		}
-		if i.Type != qtypes.QueryType_BETWEEN {
+		if i.Type != qtypes.QueryType_BETWEEN && i.Type != qtypes.QueryType_IN {
 			for _, pf := range opt.PlaceholderFuncs {
 				if _, err := com.WriteString(pf); err != nil {
 					return err
@@ -370,11 +375,12 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 			com.Add(fmt.Sprintf("%s", i.Value()))
 		case qtypes.QueryType_HAS_SUFFIX:
 			com.Add(fmt.Sprintf("%s", i.Value()))
+		case qtypes.QueryType_IN:
+			// already handled
 		case qtypes.QueryType_BETWEEN:
 			// already handled by recursive call
 		default:
 			%s
-
 		}
 
 		com.Dirty = true
