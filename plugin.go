@@ -78,6 +78,18 @@ func (p *Plugin) Static(s *pqt.Schema) string {
 }
 
 func (p *Plugin) whereClause(w io.Writer, n string) error {
+	var placeholder string
+	switch n {
+	case "Int64":
+		placeholder = "%d"
+	case "Float64":
+		placeholder = "%g"
+	case "Timestamp":
+		placeholder = "%s"
+	default:
+		placeholder = "%s"
+	}
+
 	funcName := p.Formatter.Identifier("query", n, "where", "clause")
 	fmt.Fprintf(w, `
 	func %s(i *qtypes.%s, id int, sel string, com *Composer, opt *CompositionOpts) (err error) {
@@ -385,7 +397,7 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 
 		com.Dirty = true
 		return nil
-	}`, "%%%s%%", "%s%%", "%%%s", add(n, "i.Value()"))
+	}`, "%%"+placeholder+"%%", placeholder+"%%", "%%"+placeholder, add(n, "i.Value()"))
 	return nil
 }
 
