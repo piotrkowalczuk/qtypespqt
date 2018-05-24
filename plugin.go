@@ -8,14 +8,12 @@ import (
 	"strings"
 
 	"github.com/piotrkowalczuk/pqt"
+	"github.com/piotrkowalczuk/pqt/pqtfmt"
 	"github.com/piotrkowalczuk/pqt/pqtgo"
 	"github.com/piotrkowalczuk/qtypes"
 )
 
-type Plugin struct {
-	Formatter  *pqtgo.Formatter
-	Visibility pqtgo.Visibility
-}
+type Plugin struct{}
 
 // PropertyType implements pqtgo Plugin interface.
 func (*Plugin) PropertyType(c *pqt.Column, m int32) string {
@@ -51,16 +49,16 @@ func (p *Plugin) WhereClause(c *pqt.Column) string {
 	switch {
 	case useString(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, p.Formatter.Identifier("queryStringWhereClause"), opts)
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, pqtfmt.Public("queryStringWhereClause"), opts)
 	case useInt64(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, p.Formatter.Identifier("queryInt64WhereClause"), opts)
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, pqtfmt.Public("queryInt64WhereClause"), opts)
 	case useFloat64(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, p.Formatter.Identifier("queryFloat64WhereClause"), opts)
+			%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, pqtfmt.Public("queryFloat64WhereClause"), opts)
 	case useTimestamp(c.Type, pqtgo.ModeCriteria):
 		return fmt.Sprintf(`
-		%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, p.Formatter.Identifier("queryTimestampWhereClause"), opts)
+		%s({{ .selector }}, {{ .id }}, {{ .column }}, {{ .composer }}, %s)`, pqtfmt.Public("queryTimestampWhereClause"), opts)
 	}
 	return ""
 }
@@ -90,7 +88,7 @@ func (p *Plugin) whereClause(w io.Writer, n string) error {
 		placeholder = "%s"
 	}
 
-	funcName := p.Formatter.Identifier("query", n, "where", "clause")
+	funcName := pqtfmt.Public("query", n, "where", "clause")
 	fmt.Fprintf(w, `
 	func %s(i *qtypes.%s, id int, sel string, com *Composer, opt *CompositionOpts) (err error) {
 		if i == nil || !i.Valid {
